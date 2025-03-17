@@ -8,7 +8,7 @@ on:
     branches:
       - main
   schedule:
-    - cron: '0 12 * * 1' # 每周一 12:00 运行
+    - cron: '0 12 * * 1' # 每週一 12:00 運行
 
 jobs:
   security:
@@ -19,30 +19,52 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v4
 
-      # 1️⃣ 安装并运行 Gitleaks 进行敏感信息扫描
+      # 1️⃣ 安裝並運行 Gitleaks 進行敏感信息掃描
       - name: Install and Run Gitleaks
         run: |
           curl -sSL -o gitleaks https://github.com/gitleaks/gitleaks/releases/latest/download/gitleaks-linux-amd64
           chmod +x gitleaks
-          ./gitleaks detect --source . --verbose --redact || true
+          ./gitleaks detect --source . --verbose --redact || true # 掃描出問題也繼續執行
 
-      # 2️⃣ 运行 SAST（Semgrep 静态代码分析）
+      # 2️⃣ 運行 SAST（Semgrep 靜態代碼分析）
       - name: Run Semgrep (Static Analysis)
         uses: returntocorp/semgrep-action@v1
         with:
           config: "p/default"
 
-      # 3️⃣ 依赖安全检查（Node.js）
+      # 3️⃣ 依賴安全檢查（Node.js）
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18' # 選擇node版本。
+      - name: Cache NPM dependencies
+        uses: actions/cache@v3
+        with:
+          path: ~/.npm
+          key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-node-
       - name: Run NPM Audit
-        run: npm audit --json || true
+        run: npm audit --json || true # 掃描出問題也繼續執行
 
-      # 4️⃣ 依赖安全检查（Python）
+      # 4️⃣ 依賴安全檢查（Python）
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.9' #選擇python版本
+      - name: Cache pip dependencies
+        uses: actions/cache@v3
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-
+      - name: Install pip-audit
+        run: pip install pip-audit
       - name: Run pip-audit
-        run: |
-          pip install pip-audit
-          pip-audit || true
+        run: pip-audit || true # 掃描出問題也繼續執行
 
-      # 5️⃣ 运行 OWASP Dependency Check（检查依赖漏洞）
+      # 5️⃣ 運行 OWASP Dependency Check（檢查依賴漏洞）
       - name: Run OWASP Dependency Check
         uses: dependency-check/Dependency-Check_Action@main
         with:
@@ -50,7 +72,7 @@ jobs:
           format: "HTML"
           outputDirectory: "reports"
 
-      # 6️⃣ 上传扫描结果
+      # 6️⃣ 上傳掃描結果
       - name: Upload Reports
         uses: actions/upload-artifact@v4
         with:
