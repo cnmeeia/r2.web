@@ -1,0 +1,56 @@
+name: Security Scan
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+  schedule:
+    - cron: '0 12 * * 1' # 每周一 12:00 运行
+
+jobs:
+  security:
+    name: Run Security Scans
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      # 1️⃣ 检查 Git 泄露的敏感信息
+      - name: Run Gitleaks (Secret Scan)
+        uses: gitleaks/gitleaks-action@v2
+        with:
+          config-path: .gitleaks.toml
+          fail: true  # 如果发现泄露，则任务失败
+
+      # 2️⃣ 运行 SAST（静态分析）
+      - name: Run Semgrep (Static Analysis)
+        uses: returntocorp/semgrep-action@v1
+        with:
+          config: "p/default"
+
+      # 3️⃣ 依赖安全检查（Node.js）
+      - name: Run NPM Audit
+        run: npm audit --json || true
+
+      # 4️⃣ 依赖安全检查（Python）
+      - name: Run pip-audit
+        run: pip install pip-audit && pip-audit || true
+
+      # 5️⃣ 运行 OWASP Dependency Check（检查依赖漏洞）
+      - name: Run OWASP Dependency Check
+        uses: dependency-check/Dependency-Check_Action@main
+        with:
+          project: "r2.web"
+          format: "HTML"
+          outputDirectory: "reports"
+      
+      # 6️⃣ 上传扫描结果
+      - name: Upload Reports
+        uses: actions/upload-artifact@v4
+        with:
+          name: security-reports
+          path: reports/
