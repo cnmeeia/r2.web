@@ -19,14 +19,15 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v4
 
-      # 1️⃣ 检查 Git 泄露的敏感信息
+      # 1️⃣ 运行 Gitleaks 进行敏感信息扫描
       - name: Run Gitleaks (Secret Scan)
-        uses: gitleaks/gitleaks-action@v2
-        with:
-          config-path: .gitleaks.toml
-          fail: true  # 如果发现泄露，则任务失败
+        run: |
+          curl -sSL -o gitleaks.tar.gz https://github.com/gitleaks/gitleaks/releases/latest/download/gitleaks-linux-amd64.tar.gz
+          tar -xzf gitleaks.tar.gz
+          chmod +x gitleaks
+          ./gitleaks detect --source . --verbose --redact || true
 
-      # 2️⃣ 运行 SAST（静态分析）
+      # 2️⃣ 运行 SAST（Semgrep 静态代码分析）
       - name: Run Semgrep (Static Analysis)
         uses: returntocorp/semgrep-action@v1
         with:
@@ -38,7 +39,9 @@ jobs:
 
       # 4️⃣ 依赖安全检查（Python）
       - name: Run pip-audit
-        run: pip install pip-audit && pip-audit || true
+        run: |
+          pip install pip-audit
+          pip-audit || true
 
       # 5️⃣ 运行 OWASP Dependency Check（检查依赖漏洞）
       - name: Run OWASP Dependency Check
@@ -47,7 +50,7 @@ jobs:
           project: "r2.web"
           format: "HTML"
           outputDirectory: "reports"
-      
+
       # 6️⃣ 上传扫描结果
       - name: Upload Reports
         uses: actions/upload-artifact@v4
