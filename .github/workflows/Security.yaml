@@ -19,11 +19,10 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v4
 
-      # 1️⃣ 运行 Gitleaks 进行敏感信息扫描
-      - name: Run Gitleaks (Secret Scan)
+      # 1️⃣ 安装并运行 Gitleaks 进行敏感信息扫描
+      - name: Install and Run Gitleaks
         run: |
-          curl -sSL -o gitleaks.tar.gz https://github.com/gitleaks/gitleaks/releases/latest/download/gitleaks-linux-amd64.tar.gz
-          tar -xzf gitleaks.tar.gz
+          curl -sSL -o gitleaks https://github.com/gitleaks/gitleaks/releases/latest/download/gitleaks-linux-amd64
           chmod +x gitleaks
           ./gitleaks detect --source . --verbose --redact || true
 
