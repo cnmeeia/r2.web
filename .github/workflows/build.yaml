@@ -4,7 +4,7 @@ name: Build Docker R2 Image and Upload Artifact
 on:
   push:
     branches:
-      - main
+      - master
 
 jobs:
   build:
